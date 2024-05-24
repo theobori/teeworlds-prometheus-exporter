@@ -7,6 +7,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server/master_server"
 	twserver "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/server"
 )
 
@@ -51,14 +52,12 @@ func (ms *MasterServerHTTP) Url() string {
 	return ms.url
 }
 
-// Get the master server as string
-func (ms *MasterServerHTTP) Id() string {
-	return ms.Url()
-}
-
-// Get the master server kind
-func (ms *MasterServerHTTP) Kind() string {
-	return MasterServerKind
+// Get the master server metadata
+func (ms *MasterServerHTTP) Metadata() masterserver.MasterServerMetadata {
+	return masterserver.MasterServerMetadata{
+		Protocol: "http",
+		Address:  ms.Url(),
+	}
 }
 
 // Set a HTTP client

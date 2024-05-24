@@ -5,12 +5,8 @@ import (
 	"sync"
 
 	"github.com/jxsl13/twapi/browser"
+	"github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server/master_server"
 	twserver "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/server"
-)
-
-var (
-	// Master server kind
-	MasterServerKind = "udp"
 )
 
 // UDP master server controller
@@ -46,14 +42,12 @@ func (ms *MasterServerUDP) Address() string {
 	return fmt.Sprintf("%s:%d", ms.host, ms.port)
 }
 
-// Get the master server id
-func (ms *MasterServerUDP) Id() string {
-	return ms.Address()
-}
-
-// Get the master server kind
-func (ms *MasterServerUDP) Kind() string {
-	return MasterServerKind
+// Get the master server metadata
+func (ms *MasterServerUDP) Metadata() masterserver.MasterServerMetadata {
+	return masterserver.MasterServerMetadata{
+		Protocol: "udp",
+		Address:  ms.Address(),
+	}
 }
 
 // Connect to the master server

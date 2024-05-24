@@ -4,9 +4,13 @@ import (
 	"github.com/theobori/teeworlds-prometheus-exporter/teeworlds/server"
 )
 
+type MasterServerMetadata struct {
+	Protocol string
+	Address  string
+}
+
 type MasterServer interface {
-	Id() string
 	Servers() ([]*server.Server, error)
 	Refresh() error
-	Kind() string
+	Metadata() MasterServerMetadata
 }
