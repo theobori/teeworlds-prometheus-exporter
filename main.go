@@ -17,17 +17,21 @@ import (
 	mudp "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server/udp"
 )
 
+// Function prototype
 type getConfigMasterServerFunc func(m *config.MasterServer) (masterserver.MasterServer, error)
 
 var (
+	// Master server configuration error
 	ErrMasterServerConfig = fmt.Errorf("missing master server configuration")
 
+	// Master server configuration protocol
 	MasterServerConfigProtocol = map[string]getConfigMasterServerFunc{
 		"http": getConfigMasterServerHTTP,
-		"udp": getConfigMasterServerUDP,
+		"udp":  getConfigMasterServerUDP,
 	}
 )
 
+// Get a Teeworlds HTTP master server controller
 func getConfigMasterServerHTTP(m *config.MasterServer) (masterserver.MasterServer, error) {
 	if m == nil {
 		return nil, ErrMasterServerConfig
@@ -38,6 +42,7 @@ func getConfigMasterServerHTTP(m *config.MasterServer) (masterserver.MasterServe
 	return masterServer, nil
 }
 
+// Get a Teeworlds UDP master server controller
 func getConfigMasterServerUDP(m *config.MasterServer) (masterserver.MasterServer, error) {
 	if m == nil {
 		return nil, ErrMasterServerConfig
@@ -53,8 +58,9 @@ func getConfigMasterServerUDP(m *config.MasterServer) (masterserver.MasterServer
 	return masterServer, nil
 }
 
-func processConfigMasterServer(ms *masterservers.MasterServers, cm []config.MasterServer) error {
-	if ms == nil {
+// Process the Teeworlds master server depending of its configuration (protocol) 
+func processConfigMasterServer(msm *masterservers.MasterServerManager, cm []config.MasterServer) error {
+	if msm == nil {
 		return ErrMasterServerConfig
 	}
 
@@ -74,7 +80,7 @@ func processConfigMasterServer(ms *masterservers.MasterServers, cm []config.Mast
 			m.RefreshCooldown,
 		)
 
-		err = ms.Register(*entry)
+		err = msm.Register(*entry)
 		if err != nil {
 			return err
 		}
@@ -84,7 +90,7 @@ func processConfigMasterServer(ms *masterservers.MasterServers, cm []config.Mast
 }
 
 func main() {
-	configPath := flag.String("config-path", "./config.yaml", "Configuration YAML file path")
+	configPath := flag.String("config-path", "./config.yml", "Configuration YAML file path")
 	port := flag.Uint("port", 8080, "Prometheus exporter port")
 	endpoint := flag.String("endpoint", "/metrics", "Prometheus exporter HTTP endpoint")
 
@@ -97,26 +103,42 @@ func main() {
 		return
 	}
 
-	ms := masterservers.NewMasterServers()
+	msm := masterservers.NewMasterServers()
 
 	// Process and parse the configuration
-	err = processConfigMasterServer(ms, c.Servers.Master)
+	err = processConfigMasterServer(msm, c.Servers.Master)
 	if err != nil {
 		log.Println(err)
 		return
 	}
 
 	// Start refreshing the servers
-	ms.StartRefresh()
+	msm.StartRefresh()
 
 	// Register the exporter
-	exporter := exporter.NewExporter(ms)
+	exporter := exporter.NewExporter(msm)
 	prometheus.MustRegister(exporter)
 
 	http.Handle(*endpoint, promhttp.Handler())
+	http.HandleFunc(
+		"/",
+		func(w http.ResponseWriter, r *http.Request) {
+			_, _ = w.Write(
+				[]byte(`<html>
+             <head><title>Teeworlds Exporter</title></head>
+             <body>
+             <h1>Teeworlds Exporter</h1>
+             <p><a href='` + *endpoint + `'>Metrics</a></p>
+             </body>
+             </html>`),
+			)
+		},
+	)
 
-	log.Printf("Listening at endpoint %s on port %d", *endpoint, *port)
-	
+	log.Printf("Exposing metrics via HTTP at endpoint %s on port %d", *endpoint, *port)
+
 	pattern := fmt.Sprintf(":%d", *port)
-	log.Fatal(http.ListenAndServe(pattern, nil))
+	err = http.ListenAndServe(pattern, nil)
+
+	log.Fatal(err)
 }

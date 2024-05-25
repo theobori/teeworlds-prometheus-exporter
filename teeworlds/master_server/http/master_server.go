@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server/master_server"
 	twserver "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/server"
@@ -18,8 +19,8 @@ var (
 		"https://master2.ddnet.tw/ddnet/15/servers.json",
 	}
 
-	// Master server kind
-	MasterServerKind = "http"
+	// Master server protocol
+	MasterServerProtocol = "http"
 )
 
 // HTTP master server controller
@@ -30,7 +31,10 @@ type MasterServerHTTP struct {
 	servers []*twserver.Server
 	// HTTP client used to perform every requests
 	httpClient *http.Client
-	mu         sync.Mutex
+	// HTTP metrics
+	metrics masterserver.MasterServerMetrics
+	// Mutex protecting `servers` and `metrics`
+	mu sync.Mutex
 }
 
 // Creates a new MasterServerHTTP struct
@@ -39,6 +43,7 @@ func NewMasterServer(url string) *MasterServerHTTP {
 		url:        url,
 		servers:    []*twserver.Server{},
 		httpClient: &httpDefaultClient,
+		metrics:    masterserver.MasterServerMetrics{},
 	}
 }
 
@@ -55,7 +60,7 @@ func (ms *MasterServerHTTP) Url() string {
 // Get the master server metadata
 func (ms *MasterServerHTTP) Metadata() masterserver.MasterServerMetadata {
 	return masterserver.MasterServerMetadata{
-		Protocol: "http",
+		Protocol: MasterServerProtocol,
 		Address:  ms.Url(),
 	}
 }
@@ -80,13 +85,28 @@ func (ms *MasterServerHTTP) RefreshWithContext(ctx context.Context) error {
 	var serversField twserver.Servers
 	var servers []*twserver.Server
 
+	start := time.Now()
+
 	err := HTTPGetJson(ctx, ms.httpClient, ms.url, &serversField)
+
+	elapsed := time.Since(start).Seconds()
+
+	// Failed HTTP request
 	if err != nil {
+		ms.mu.Lock()
+		ms.metrics.FailedRefreshCount++
+		ms.mu.Unlock()
+
 		return err
 	}
 
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
+
+	ms.metrics.RequestTime = uint(elapsed)
+
+	// Success HTTP request
+	ms.metrics.SuccessRefreshCount++
 
 	for _, server := range serversField.Servers {
 		servers = append(servers, &server)
@@ -123,4 +143,12 @@ func (ms *MasterServerHTTP) Server(host string, port uint16) (*twserver.Server, 
 	}
 
 	return nil, fmt.Errorf("the server %s is not registered", targetAddress)
+}
+
+// Get the master server metrics
+func (ms *MasterServerHTTP) Metrics() masterserver.MasterServerMetrics {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	return ms.metrics
 }

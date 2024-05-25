@@ -3,6 +3,7 @@ package udp
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/jxsl13/twapi/browser"
 	"github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server/master_server"
@@ -19,7 +20,9 @@ type MasterServerUDP struct {
 	client *browser.Client
 	// Teeworlds servers informations
 	servers []*browser.ServerInfo
-	// Mutex to protect `servers`
+	// Master server metrics
+	metrics masterserver.MasterServerMetrics
+	// Mutex to protect `servers` and `metrics`
 	mu sync.Mutex
 }
 
@@ -73,19 +76,14 @@ func (ms *MasterServerUDP) Disconnect() error {
 	return ms.client.Close()
 }
 
-// Set the servers
-func (ms *MasterServerUDP) setServers(servers []*browser.ServerInfo) {
-	ms.mu.Lock()
-	defer ms.mu.Unlock()
-
-	ms.servers = servers
-}
-
 // Update the teeworlds servers informations
-func (ms *MasterServerUDP) Refresh() error {
+func (ms *MasterServerUDP) refresh() error {
 	if ms.client == nil {
 		return fmt.Errorf("missing client")
 	}
+
+	// Starting before we get the server addresses
+	start := time.Now()
 
 	// Get the registered teeworlds server addresses
 	addresses, err := ms.client.GetServerAddresses()
@@ -99,8 +97,32 @@ func (ms *MasterServerUDP) Refresh() error {
 		return err
 	}
 
-	// Update the servers
-	ms.setServers(serversInfo)
+	// Get the elapsed time
+	elapsed := time.Since(start).Seconds()
+
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	ms.servers = serversInfo
+	ms.metrics.RequestTime = uint(elapsed)
+
+	return nil
+}
+
+// Update the teeworlds servers informations
+func (ms *MasterServerUDP) Refresh() error {
+	err := ms.refresh()
+
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	if err != nil {
+		ms.metrics.FailedRefreshCount++
+
+		return err
+	}
+
+	ms.metrics.SuccessRefreshCount++
 
 	return nil
 }
@@ -130,4 +152,12 @@ func (ms *MasterServerUDP) ServersInfo() []*browser.ServerInfo {
 	defer ms.mu.Unlock()
 
 	return ms.servers
+}
+
+// Get the master server metrics
+func (ms *MasterServerUDP) Metrics() masterserver.MasterServerMetrics {
+	ms.mu.Lock()
+	defer ms.mu.Unlock()
+
+	return ms.metrics
 }

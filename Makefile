@@ -8,10 +8,13 @@ fmt:
 	gofmt -w $(GOFMT_FILES)
 
 build:
-	go build -o $(BIN)
+	go build -v -o $(BIN)
 
 clean:
 	go clean -testcache
+
+fclean: clean
+	$(RM) $(BIN)
 
 test: clean
 	go test -v ./...
@@ -19,4 +22,5 @@ test: clean
 .PHONY: \
 	fmt \
 	test \
-	clean
+	clean \
+	fclean

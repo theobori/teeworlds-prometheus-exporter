@@ -27,9 +27,10 @@ type MasterServer struct {
 	URL             string `yaml:"url,omitempty"`
 	Host            string `yaml:"host,omitempty"`
 	Port            uint16 `yaml:"port,omitempty"`
-	RefreshCooldown uint  `yaml:"refresh_cooldown" default:"10"`
+	RefreshCooldown uint   `yaml:"refresh_cooldown" default:"10"`
 }
 
+// Get YAML data as `Config`
 func ConfigFromData(data []byte) (*Config, error) {
 	var config Config
 
@@ -41,6 +42,7 @@ func ConfigFromData(data []byte) (*Config, error) {
 	return &config, nil
 }
 
+// Get YAML data as `Config` from a file
 func ConfigFromFile(filename string) (*Config, error) {
 	file, err := os.Open(filename)
 	if err != nil {

@@ -5,6 +5,7 @@ import (
 	"os"
 )
 
+// Debug fonction
 func Debug(format string, v ...any) {
 	debug := os.Getenv("DEBUG")
 
