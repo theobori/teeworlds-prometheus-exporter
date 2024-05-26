@@ -11,86 +11,12 @@ import (
 	"github.com/theobori/teeworlds-prometheus-exporter/exporter"
 	"github.com/theobori/teeworlds-prometheus-exporter/internal/config"
 
+	econ "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/econ"
 	masterservers "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server"
-	mhttp "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server/http"
-	masterserver "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server/master_server"
-	mudp "github.com/theobori/teeworlds-prometheus-exporter/teeworlds/master_server/udp"
 )
-
-// Function prototype
-type getConfigMasterServerFunc func(m *config.MasterServer) (masterserver.MasterServer, error)
-
-var (
-	// Master server configuration error
-	ErrMasterServerConfig = fmt.Errorf("missing master server configuration")
-
-	// Master server configuration protocol
-	MasterServerConfigProtocol = map[string]getConfigMasterServerFunc{
-		"http": getConfigMasterServerHTTP,
-		"udp":  getConfigMasterServerUDP,
-	}
-)
-
-// Get a Teeworlds HTTP master server controller
-func getConfigMasterServerHTTP(m *config.MasterServer) (masterserver.MasterServer, error) {
-	if m == nil {
-		return nil, ErrMasterServerConfig
-	}
-
-	masterServer := mhttp.NewMasterServer(m.URL)
-
-	return masterServer, nil
-}
-
-// Get a Teeworlds UDP master server controller
-func getConfigMasterServerUDP(m *config.MasterServer) (masterserver.MasterServer, error) {
-	if m == nil {
-		return nil, ErrMasterServerConfig
-	}
-
-	masterServer := mudp.NewMasterServer(m.Host, m.Port)
-
-	err := masterServer.Connect()
-	if err != nil {
-		return nil, err
-	}
-
-	return masterServer, nil
-}
-
-// Process the Teeworlds master server depending of its configuration (protocol) 
-func processConfigMasterServer(msm *masterservers.MasterServerManager, cm []config.MasterServer) error {
-	if msm == nil {
-		return ErrMasterServerConfig
-	}
-
-	for _, m := range cm {
-		f, found := MasterServerConfigProtocol[m.Protocol]
-		if !found {
-			return fmt.Errorf("invalid master server protocol")
-		}
-
-		masterServer, err := f(&m)
-		if err != nil {
-			return err
-		}
-
-		entry := masterservers.NewMasterServersEntry(
-			masterServer,
-			m.RefreshCooldown,
-		)
-
-		err = msm.Register(*entry)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
 
 func main() {
-	configPath := flag.String("config-path", "./config.yml", "Configuration YAML file path")
+	configPath := flag.String("config-path", "./config.yml", "Teeworlds configuration YAML file path")
 	port := flag.Uint("port", 8080, "Prometheus exporter port")
 	endpoint := flag.String("endpoint", "/metrics", "Prometheus exporter HTTP endpoint")
 
@@ -99,24 +25,35 @@ func main() {
 	// Get configuration as Golang struct
 	c, err := config.ConfigFromFile(*configPath)
 	if err != nil {
-		log.Println(err)
-		return
+		log.Fatalln(err)
 	}
 
-	msm := masterservers.NewMasterServers()
+	// Master server manager
+	msm := masterservers.NewMasterServerManager()
+
+	// Econ server manager
+	em := econ.NewEconManager()
 
 	// Process and parse the configuration
-	err = processConfigMasterServer(msm, c.Servers.Master)
-	if err != nil {
-		log.Println(err)
-		return
+	if err := config.ProcessConfig(em, msm, *c); err != nil {
+		log.Fatalln(err)
 	}
 
-	// Start refreshing the servers
+	// Start refreshing the master servers
 	msm.StartRefresh()
 
+	// Register the events for metrics
+	if err := em.RegisterEconEvents(); err != nil {
+		log.Fatalln(err)
+	}
+
+	// Start handling events
+	if err := em.StartHandle(); err != nil {
+		log.Fatalln(err)
+	}
+
 	// Register the exporter
-	exporter := exporter.NewExporter(msm)
+	exporter := exporter.NewExporter(msm, em)
 	prometheus.MustRegister(exporter)
 
 	http.Handle(*endpoint, promhttp.Handler())

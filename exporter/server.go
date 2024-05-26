@@ -35,7 +35,7 @@ var (
 )
 
 // Send Teeworlds servers Prometheus metric
-func ServerMetric(
+func SendServerMetrics(
 	metricInfo *MetricInfo,
 	msm *masterservers.MasterServerManager,
 	ch chan<- prometheus.Metric,

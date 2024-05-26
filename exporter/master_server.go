@@ -17,7 +17,7 @@ var (
 	// Teeworlds master server metrics informations associated with function to scrape a metric
 	MasterServerMetrics = map[*MetricInfo]func(masterServer *masterserver.MasterServer) float64{
 		{
-			Desc: prometheus.NewDesc("master_server_players", "Total number of players on a master server", MasterServerLabels, nil),
+			Desc: prometheus.NewDesc("teeworlds_master_server_players", "Total number of players on a master server.", MasterServerLabels, nil),
 			Type: prometheus.GaugeValue,
 		}: func(masterServer *masterserver.MasterServer) float64 {
 			s := 0
@@ -36,7 +36,7 @@ var (
 			return float64(s)
 		},
 		{
-			Desc: prometheus.NewDesc("teeworlds_master_server_servers", "Total number of servers registered on a master server", MasterServerLabels, nil),
+			Desc: prometheus.NewDesc("teeworlds_master_server_servers", "Total number of servers registered on a master server.", MasterServerLabels, nil),
 			Type: prometheus.GaugeValue,
 		}: func(masterServer *masterserver.MasterServer) float64 {
 			// Assuming masterServer cannot be nil
@@ -45,7 +45,7 @@ var (
 			return float64(len(servers))
 		},
 		{
-			Desc: prometheus.NewDesc("teeworlds_master_server_request_duration_seconds", "Request duration when refreshing a master server", MasterServerLabels, nil),
+			Desc: prometheus.NewDesc("teeworlds_master_server_request_duration_seconds", "Request duration when refreshing a master server. From client request to full data server response.", MasterServerLabels, nil),
 			Type: prometheus.GaugeValue,
 		}: func(masterServer *masterserver.MasterServer) float64 {
 			// Assuming masterServer cannot be nil
@@ -54,7 +54,7 @@ var (
 			return float64(metrics.RequestTime)
 		},
 		{
-			Desc: prometheus.NewDesc("teeworlds_master_server_request_total", "Total number of master server request", MasterServerLabels, prometheus.Labels{"state": "failed"}),
+			Desc: prometheus.NewDesc("teeworlds_master_server_request_total", "Total number of master server requests.", MasterServerLabels, prometheus.Labels{"state": "failed"}),
 			Type: prometheus.CounterValue,
 		}: func(masterServer *masterserver.MasterServer) float64 {
 			// Assuming masterServer cannot be nil
@@ -63,7 +63,7 @@ var (
 			return float64(metrics.FailedRefreshCount)
 		},
 		{
-			Desc: prometheus.NewDesc("teeworlds_master_server_request_total", "Total number of master server request", MasterServerLabels, prometheus.Labels{"state": "success"}),
+			Desc: prometheus.NewDesc("teeworlds_master_server_request_total", "Total number of master server requests.", MasterServerLabels, prometheus.Labels{"state": "success"}),
 			Type: prometheus.CounterValue,
 		}: func(masterServer *masterserver.MasterServer) float64 {
 			// Assuming masterServer cannot be nil
@@ -75,7 +75,7 @@ var (
 )
 
 // Send Teeworlds master servers Prometheus metric
-func MasterServerMetric(
+func SendMasterServerMetrics(
 	metricInfo *MetricInfo,
 	masterServers []*masterserver.MasterServer,
 	ch chan<- prometheus.Metric,

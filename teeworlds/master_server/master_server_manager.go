@@ -9,7 +9,7 @@ import (
 )
 
 // Master server entry used to register a master server
-type MasterServersEntry struct {
+type MasterServerManagerEntry struct {
 	// Master server implementation
 	MasterServer masterserver.MasterServer
 	// Cooldown between each refresh
@@ -19,8 +19,11 @@ type MasterServersEntry struct {
 }
 
 // Create a new master server entry
-func NewMasterServersEntry(masterServer masterserver.MasterServer, refreshcooldown uint) *MasterServersEntry {
-	return &MasterServersEntry{
+func NewMasterServerManagerEntry(
+	masterServer masterserver.MasterServer,
+	refreshcooldown uint,
+) *MasterServerManagerEntry {
+	return &MasterServerManagerEntry{
 		MasterServer:    masterServer,
 		RefreshCooldown: refreshcooldown,
 		IsRefreshing:    false,
@@ -28,7 +31,7 @@ func NewMasterServersEntry(masterServer masterserver.MasterServer, refreshcooldo
 }
 
 // Map used to manage master servers
-type MasterServersMap map[masterserver.MasterServerMetadata]MasterServersEntry
+type MasterServersMap map[masterserver.MasterServerMetadata]MasterServerManagerEntry
 
 // Master server manager
 type MasterServerManager struct {
@@ -36,14 +39,14 @@ type MasterServerManager struct {
 }
 
 // Create a new master server manager
-func NewMasterServers() *MasterServerManager {
+func NewMasterServerManager() *MasterServerManager {
 	return &MasterServerManager{
 		masterServers: make(MasterServersMap),
 	}
 }
 
 // Register a master server
-func (msm *MasterServerManager) Register(entry MasterServersEntry) error {
+func (msm *MasterServerManager) Register(entry MasterServerManagerEntry) error {
 	masterServer := entry.MasterServer
 
 	if masterServer == nil {
@@ -60,27 +63,6 @@ func (msm *MasterServerManager) Delete(masterServerMetadata masterserver.MasterS
 	delete(msm.masterServers, masterServerMetadata)
 }
 
-// func (msm *MasterServerManager) Servers() (ServersMap, error) {
-// 	servers := make(ServersMap, len(msm.masterServers))
-
-// 	for metadata, entry := range msm.masterServers {
-// 		masterServer := entry.MasterServer
-
-// 		if masterServer == nil {
-// 			return nil, fmt.Errorf("masterserver is nil")
-// 		}
-
-// 		s, err := masterServer.Servers()
-// 		if err != nil {
-// 			return nil, err
-// 		}
-
-// 		servers[metadata] = s
-// 	}
-
-// 	return servers, nil
-// }
-
 // Return a Slice of pointers on master server
 func (msm *MasterServerManager) MasterServers() []*masterserver.MasterServer {
 	var masterServers []*masterserver.MasterServer
@@ -93,7 +75,7 @@ func (msm *MasterServerManager) MasterServers() []*masterserver.MasterServer {
 }
 
 // Goroutine that start refreshing a master server
-func startRefresh(entry *MasterServersEntry, errorCh chan error) {
+func startRefresh(entry *MasterServerManagerEntry, errorCh chan error) {
 	if entry == nil {
 		errorCh <- fmt.Errorf("missing entry")
 		return
