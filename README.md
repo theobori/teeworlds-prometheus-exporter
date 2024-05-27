@@ -24,7 +24,7 @@ If you want to help the project, you can follow the guidelines in [CONTRIBUTING.
 
 ## ⚙️ YAML configuration
 
-You can also take a look at [`examples/config.yml`](./examples/config.yml) if you needed. It is supposed to have the following format.
+The YAML configuration is supposed to have the following format.
 
 ```yaml
 servers:
@@ -37,9 +37,25 @@ servers:
     - protocol: http
       url: "https://master1.ddnet.tw/ddnet/15/servers.json"
       refresh_cooldown: 10
-    
+
     - protocol: udp
       host: "master1.teeworlds.com"
       port: 8283
       refresh_cooldown: 15
+    
+    - protocol: udp
+      host: "master2.teeworlds.com"
+      port: 8283
+      refresh_cooldown: 15
+    
+    - protocol: udp
+      host: "master3.teeworlds.com"
+      port: 8283
+      refresh_cooldown: 15
+
+    - protocol: udp
+      host: "master4.teeworlds.com"
+      port: 8283
+      refresh_cooldown: 15
+
 ```
