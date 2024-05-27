@@ -21,15 +21,15 @@ var (
 		// Teeworlds 0.7 events metrics
 		{
 			Name:  "message",
-			Regex: `\[chat\]: .*`,
+			Regex: `\[.*\]\[chat\]: .*`,
 		},
 		{
 			Name:  "kill",
-			Regex: `\[game\]: kill killer=.*`,
+			Regex: `\[.*\]\[game\]: kill killer=.*`,
 		},
 		{
 			Name:  "captured_flag",
-			Regex: `\[game\]: flag_capture player=.*`,
+			Regex: `\[.*\]\[game\]: flag_capture player=.*`,
 		},
 	}
 )
