@@ -106,7 +106,7 @@ func (em *EconManager) RegisterEconEvents() error {
 			continue
 		}
 
-		err := em.registerMetricEvents(entry.Econ, &entry.Metrics)
+		err := registerMetricEvents(entry.Econ, &entry.Metrics)
 		if err != nil {
 			return err
 		}
@@ -144,7 +144,7 @@ func (em *EconManager) StartHandle() error {
 	return nil
 }
 
-func (em *EconManager) registerMetricEvents(e *twecon.Econ, metrics *EconMetrics) error {
+func registerMetricEvents(e *twecon.Econ, metrics *EconMetrics) error {
 	if e == nil || metrics == nil {
 		return fmt.Errorf("nil econ or metrics")
 	}
