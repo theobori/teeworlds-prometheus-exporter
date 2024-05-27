@@ -48,8 +48,10 @@ func (e *Exporter) collectMasterServers(ch chan<- prometheus.Metric) {
 
 // Collect the Teeworlds econ servers metrics
 func (e *Exporter) collectEconServers(ch chan<- prometheus.Metric) {
-	for metricInfo, f := range EconMetrics {
-		err := SendEconServerMetrics(metricInfo, e.em, ch, f)
+	econServersMetrics := e.em.EconServersMetrics()
+
+	for metadata, metrics := range econServersMetrics {
+		err := SendEconServerMetrics(metadata, metrics, ch)
 		if err != nil {
 			debug.Debug(err.Error())
 		}
@@ -68,10 +70,8 @@ func (e *Exporter) Describe(ch chan<- *prometheus.Desc) {
 		ch <- metricInfo.Desc
 	}
 
-	// Teeworlds econ server metrics
-	for metricInfo := range EconMetrics {
-		ch <- metricInfo.Desc
-	}
+	// Teeworlds econ server metric
+	ch <- EconMetric.Desc
 }
 
 // Collect implements required collect function for all promehteus exporters

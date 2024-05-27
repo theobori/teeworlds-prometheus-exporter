@@ -7,41 +7,30 @@ import (
 	twecon "github.com/theobori/teeworlds-econ"
 )
 
-type econEventMetricsKey struct {
+type EconEventEntry struct {
 	Name string
 	Regex string
 }
 
 var (
-	EconEventMetrics = map[econEventMetricsKey]func(econMetrics *EconMetrics){
+	EconEvents = []EconEventEntry{
 		// Teeworlds 0.7 events metrics
 		{
 			Name: "message",
 			Regex: `\[chat\]: .*`,
-		}: func(econMetrics *EconMetrics) {
-			econMetrics.MessagesTotal++
 		},
 		{
 			Name: "kill",
 			Regex: `\[game\]: kill killer=.*`,
-		}: func(econMetrics *EconMetrics) {
-			econMetrics.KillsTotal++
 		},
 		{
 			Name: "captured_flag",
 			Regex: `\[game\]: flag_capture player=.*`,
-		}: func(econMetrics *EconMetrics) {
-			econMetrics.CapturedFlagsTotal++
 		},
 	}
 )
 
-type EconMetrics struct {
-	MessagesTotal      uint
-	CapturedFlagsTotal uint
-	KillsTotal         uint
-	VotesTotal         uint
-}
+type EconMetrics map[string]uint
 
 type EconMananagerEntry struct {
 	Econ       *twecon.Econ
@@ -82,9 +71,16 @@ func (em *EconManager) Register(e *twecon.Econ) error {
 
 	c := e.Config()
 
+	// init metrics with zeros
+	metrics := EconMetrics{}
+
+	for _, econEvent := range(EconEvents) {
+		metrics[econEvent.Name] = 0
+	}
+
 	entry := EconMananagerEntry{
 		Econ:    e,
-		Metrics: EconMetrics{},
+		Metrics: metrics,
 	}
 
 	k := EconMananagerKey{
@@ -153,12 +149,12 @@ func (em *EconManager) registerMetricEvents(e *twecon.Econ, metrics *EconMetrics
 		return fmt.Errorf("nil econ or metrics")
 	}
 
-	for k, f := range(EconEventMetrics) {
+	for _, event := range(EconEvents) {
 		event := twecon.EconEvent{
-			Name: k.Name,
-			Regex: k.Regex,
+			Name: event.Name,
+			Regex: event.Regex,
 			Func: func(econ *twecon.Econ, eventPayload string) any {
-				f(metrics)
+				(*metrics)[event.Name]++
 
 				return nil
 			},

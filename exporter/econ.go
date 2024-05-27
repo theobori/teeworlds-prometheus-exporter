@@ -12,62 +12,32 @@ var (
 	EconLabels = []string{
 		"address",
 		"port",
+		"event",
 	}
 
-	// Teeworlds master server metrics informations associated with function to scrape a metric
-	EconMetrics = map[*MetricInfo]func(econMetrics econ.EconMetrics) float64{
-		{
-			Desc: prometheus.NewDesc("teeworlds_econ_event_total", "Total number of received econ events.", EconLabels, prometheus.Labels{"event": "message"}),
-			Type: prometheus.CounterValue,
-		}: func(econMetrics econ.EconMetrics) float64 {
-			return float64(econMetrics.MessagesTotal)
-		},
-		{
-			Desc: prometheus.NewDesc("teeworlds_econ_event_total", "Total number of received econ events.", EconLabels, prometheus.Labels{"event": "kill"}),
-			Type: prometheus.CounterValue,
-		}: func(econMetrics econ.EconMetrics) float64 {
-			return float64(econMetrics.KillsTotal)
-		},
-		{
-			Desc: prometheus.NewDesc("teeworlds_econ_event_total", "Total number of received econ events.", EconLabels, prometheus.Labels{"event": "captured_flag"}),
-			Type: prometheus.CounterValue,
-		}: func(econMetrics econ.EconMetrics) float64 {
-			return float64(econMetrics.CapturedFlagsTotal)
-		},
-		{
-			Desc: prometheus.NewDesc("teeworlds_econ_event_total", "Total number of received econ events.", EconLabels, prometheus.Labels{"event": "vote"}),
-			Type: prometheus.CounterValue,
-		}: func(econMetrics econ.EconMetrics) float64 {
-			return float64(econMetrics.VotesTotal)
-		},
+	EconMetric = MetricInfo{
+		Desc: prometheus.NewDesc("teeworlds_econ_event_total", "Total number of received econ events.", EconLabels, nil),
+		Type: prometheus.CounterValue,
 	}
 )
 
 // Send Teeworlds econ servers Prometheus metric
 func SendEconServerMetrics(
-	metricInfo *MetricInfo,
-	em *econ.EconManager,
+	metadata econ.EconMananagerKey,
+	econMetrics econ.EconMetrics,
 	ch chan<- prometheus.Metric,
-	f func(econMetrics econ.EconMetrics) float64,
 ) error {
-	if metricInfo == nil || em == nil {
-		return fmt.Errorf("missing metric info or econ manager")
-	}
-
-	serversMetrics := em.EconServersMetrics()
-
-	for key, metrics := range serversMetrics {
+	for metricName, metricValue := range econMetrics {
 		labelValues := []string{
-			key.Host,
-			fmt.Sprintf("%d", key.Port),
+			metadata.Host,
+			fmt.Sprintf("%d", metadata.Port),
+			metricName,
 		}
 
-		metricValue := f(metrics)
-
 		ch <- prometheus.MustNewConstMetric(
-			metricInfo.Desc,
-			metricInfo.Type,
-			metricValue,
+			EconMetric.Desc,
+			EconMetric.Type,
+			float64(metricValue),
 			labelValues...,
 		)
 	}
