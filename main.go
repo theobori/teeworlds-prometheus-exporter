@@ -77,5 +77,5 @@ func main() {
 	pattern := fmt.Sprintf(":%d", *port)
 	err = http.ListenAndServe(pattern, nil)
 
-	log.Fatal(err)
+	log.Fatalln(err)
 }

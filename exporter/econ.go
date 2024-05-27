@@ -15,6 +15,7 @@ var (
 		"event",
 	}
 
+	// Econ Prometheus metric
 	EconMetric = MetricInfo{
 		Desc: prometheus.NewDesc("teeworlds_econ_event_total", "Total number of received econ events.", EconLabels, nil),
 		Type: prometheus.CounterValue,
