@@ -17,6 +17,18 @@ Next to the Go application you could need the following requirements:
 
 Now you can build and run the Go application, check the `-h` or `--help` flag if needed.
 
+## 🔎 Metrics informations
+
+The metrics are detailed below.
+
+| Name | Description |
+| -- | -- |
+| `teeworlds_server_players` | Total number of players in a Teeworlds server. |
+| `teeworlds_master_server_players` | Total number of players on a master server. |
+| `teeworlds_master_server_servers` | Total number of servers registered on a master server. |
+| `teeworlds_master_server_request_duration_seconds` | Request duration when refreshing a master server. From client request to full data server response. |
+| `teeworlds_master_server_request_total` | Total number of master server requests. |
+| `teeworlds_econ_event_total` | Total number of received econ events. |
 
 ## 🤝 Contribute
 
